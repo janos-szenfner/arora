@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2009, Benjamin C. Meyer <ben@meyerhome.net>
+ * Copyright (c) 2026, The Arora Authors
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,22 +26,43 @@
  * SUCH DAMAGE.
  */
 
-#ifndef ADBLOCKPAGE_H
-#define ADBLOCKPAGE_H
+#ifndef ADBLOCKRESOURCEHANDLER_H
+#define ADBLOCKRESOURCEHANDLER_H
 
-#include <qobject.h>
+#include <qbytearray.h>
+#include <qwebengineurlschemehandler.h>
 
-class AdBlockRule;
-class QWebEnginePage;
-class AdBlockPage : public QObject
+class QUrl;
+
+/*
+    Serves the bundled stub ("redirect") resources that adblock
+    $redirect= / $redirect-rule= rules point at, on the
+    arora-resource:// scheme.  The resource table is compiled in
+    (generated programmatically for the images) so nothing on disk or
+    in a filter list can influence what gets served.
+
+    Resource names follow the ABP/uBO conventions; alias names such as
+    "1x1-transparent-gif" or "noopjs" normalize to the canonical files.
+*/
+class AdBlockResourceHandler : public QWebEngineUrlSchemeHandler
 {
     Q_OBJECT
 
 public:
-    AdBlockPage(QObject *parent = 0);
+    AdBlockResourceHandler(QObject *parent = 0);
 
-    void applyRulesToPage(QWebEnginePage *page);
+    static QByteArray schemeName();
+    static void registerUrlScheme();
+
+    // Canonical resource name for a $redirect= option value, or an
+    // empty QByteArray when nothing bundled covers it (the caller then
+    // falls back to a plain block).
+    static QByteArray canonicalResourceName(const QString &name);
+    static QUrl urlForResource(const QByteArray &canonicalName);
+    static bool resourceFor(const QByteArray &canonicalName,
+                            QByteArray *mimeType, QByteArray *body);
+
+    void requestStarted(QWebEngineUrlRequestJob *job) Q_DECL_OVERRIDE;
 };
 
-#endif // ADBLOCKPAGE_H
-
+#endif // ADBLOCKRESOURCEHANDLER_H
