@@ -1,6 +1,5 @@
 /**
- * Copyright (c) 2008, Benjamin C. Meyer  <ben@meyerhome.net>
- * Copyright (c) 2009, Jakub Wieczorek <faw217@gmail.com>
+ * Copyright (c) 2026, Benjamin C. Meyer  <ben@meyerhome.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,47 +26,19 @@
  * SUCH DAMAGE.
  */
 
-#include "edittreeview.h"
-
 #include "safetext.h"
 
-#include <qevent.h>
+#include <qtextdocument.h>
 
-EditTreeView::EditTreeView(QWidget *parent)
-    : QTreeView(parent)
+PlainTextItemDelegate::PlainTextItemDelegate(QObject *parent)
+    : QStyledItemDelegate(parent)
 {
-    // These views display web-controlled strings (page titles, cookie
-    // values); the delegate keeps markup-looking text literal.
-    setItemDelegate(new PlainTextItemDelegate(this));
 }
 
-void EditTreeView::keyPressEvent(QKeyEvent *event)
+QString PlainTextItemDelegate::displayText(const QVariant &value, const QLocale &locale) const
 {
-    if (model() && event->key() == Qt::Key_Delete) {
-        removeSelected();
-        event->setAccepted(true);
-    } else {
-        QAbstractItemView::keyPressEvent(event);
-    }
+    const QString text = QStyledItemDelegate::displayText(value, locale);
+    if (Qt::mightBeRichText(text))
+        return SafeText::escaped(text);
+    return text;
 }
-
-void EditTreeView::removeSelected()
-{
-    if (!model() || !selectionModel() || !selectionModel()->hasSelection())
-        return;
-
-    QModelIndexList selectedRows = selectionModel()->selectedRows();
-    for (int i = selectedRows.count() - 1; i >= 0; --i) {
-        QModelIndex idx = selectedRows.at(i);
-        model()->removeRow(idx.row(), idx.parent());
-    }
-}
-
-void EditTreeView::removeAll()
-{
-    if (!model())
-        return;
-
-    model()->removeRows(0, model()->rowCount(rootIndex()), rootIndex());
-}
-
